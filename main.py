@@ -1,47 +1,74 @@
 import argparse
 import os
+import sys
+import time
 import cv2
-from PIL import Image
+import numpy as np
 
-
-def get_video_data(image_path):
-    img = Image.open(image_path)
-    width, height = img.size
-
-    # RGB values for color
-    img = img.convert("RGB")
-    color_map = img.load()
-
-    # return color_map, width, height
-
-    # Turn data into plain lists
-    rows = []
-    for y in range(height):
-        cols = []
-        for x in range(width):
-            color_val = list(color_map[x, y])
-            cols.append(color_val)
-        
-        rows.append(cols)
-
-    color = rows
-
-    return color
-
-def cprint(text, color, end="\n"):
-    r, g, b = color
-    print(f"\x1b[38;2;{r};{g};{b}m{text}\x1b[0m", end=end)
+# Dense ASCII gradient ordered by luminance
+RAMP = np.array(list(" .:-=+*#%@"), dtype="U1")
 
 def cineshell(filepath):
-    data = get_pixel_data(filepath)
+    cap = cv2.VideoCapture(filepath)
+    if not cap.isOpened():
+        print("ERROR: Could not open video!")
+        return
 
-    for row in data:
-        for pixel in row:
-            cprint("█", pixel, end="")
-        print()
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    if not fps or fps <= 0:
+        fps = 30
+    frame_space = 1.0 / fps
 
-parser = argparse.ArgumentParser(description="Display an image in the terminal.")
-parser.add_argument("-fp", "--filepath", type=str, help="Path to image file", required=True, dest="filepath")
-filepath = parser.parse_args().filepath
+    # Terminal sizing
+    term_cols, term_lines = os.get_terminal_size()
+    # Reserve 1 line to avoid terminal auto-scrolling
+    target_lines = max(1, term_lines - 1)
+    target_size = (term_cols, int(target_lines))
 
-cineshell(filepath)
+    # Clear screen initially and hide cursor
+    sys.stdout.write("\x1b[2J\x1b[?25l")
+    sys.stdout.flush()
+
+    try:
+        while True:
+            t_start = time.perf_counter()
+            suc, frame = cap.read()
+            if not suc:
+                break
+
+            # Downsample frame
+            resized = cv2.resize(frame, target_size, interpolation=cv2.INTER_NEAREST)
+            
+            # Convert to grayscale in OpenCV C++ layer
+            gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
+
+            # Map 0-255 luminance to ramp indices (0-9) via NumPy vectorization
+            indices = (gray.astype(np.uint16) * len(RAMP)) // 256
+            ascii_matrix = RAMP[indices]
+
+            # Build frame payload in memory
+            rows = ["".join(row) for row in ascii_matrix]
+            frame_str = "\x1b[H" + "\n".join(rows)
+
+            # Flush frame
+            sys.stdout.write(frame_str)
+            sys.stdout.flush()
+
+            # Dynamic sync
+            elapsed = time.perf_counter() - t_start
+            sleep_time = frame_space - elapsed
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+
+    finally:
+        cap.release()
+        sys.stdout.write("\x1b[?25h\x1b[0m\n")
+        sys.stdout.flush()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Display a video in the terminal.")
+    parser.add_argument("-fp", "--filepath", type=str, help="Path to video file", required=True, dest="filepath")
+    args = parser.parse_args()
+
+    cineshell(args.filepath)
