@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 
 # Dense ASCII gradient ordered by luminance
-RAMP = np.array(list(" .:-=+*#%@"), dtype="U1")
+grad = np.array(list(" .:-=+*#%@"), dtype="U1")
 
 def cineshell(filepath):
     cap = cv2.VideoCapture(filepath)
@@ -42,9 +42,9 @@ def cineshell(filepath):
             # Convert to grayscale in OpenCV C++ layer
             gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
 
-            # Map 0-255 luminance to ramp indices (0-9) via NumPy vectorization
-            indices = (gray.astype(np.uint16) * len(RAMP)) // 256
-            ascii_matrix = RAMP[indices]
+            # Map 0-255 luminance to grad indices (0-9) via NumPy vectorization
+            indices = (gray.astype(np.uint16) * len(grad)) // 256
+            ascii_matrix = grad[indices]
 
             # Create frame string
             rows = ["".join(row) for row in ascii_matrix]
