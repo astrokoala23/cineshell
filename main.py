@@ -46,15 +46,15 @@ def cineshell(filepath):
             indices = (gray.astype(np.uint16) * len(RAMP)) // 256
             ascii_matrix = RAMP[indices]
 
-            # Build frame payload in memory
+            # Create frame string
             rows = ["".join(row) for row in ascii_matrix]
             frame_str = "\x1b[H" + "\n".join(rows)
 
-            # Flush frame
+            # Print frame
             sys.stdout.write(frame_str)
             sys.stdout.flush()
 
-            # Dynamic sync
+            # Keep constant FPS (rather than what the terminal feels like)
             elapsed = time.perf_counter() - t_start
             sleep_time = frame_space - elapsed
             if sleep_time > 0:
