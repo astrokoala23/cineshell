@@ -5,6 +5,8 @@
 ![Time](https://img.shields.io/badge/Time-2h_13mins-blue?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-red?style=for-the-badge)
 
+<img width="2816" height="1762" alt="image" src="https://github.com/user-attachments/assets/b3f0f329-d0ef-4290-a403-354d0d1a4158" />
+
 Welcome to CineShell! This repository houses a program that **plays any video in the TERMINAL**!
 
 ## Current Features
